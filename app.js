@@ -25,8 +25,10 @@ async function getText(path) {
 function engineClass(role) {
   return ENGINE_CLASS[role.engine] || "other";
 }
+const ENGINE_NAME = { claude: "Claude", codex: "GPT", openai: "GPT", gemini: "Gemini", cursor: "Cursor" };
 function modelLabel(role) {
-  return role.model ? `${role.engine}:${role.model}` : role.engine;
+  const name = ENGINE_NAME[role.engine] || role.engine;
+  return role.model ? `${name} ${role.model}` : name;
 }
 
 /* ---------- 一覧 ---------- */
