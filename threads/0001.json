@@ -1,0 +1,53 @@
+{
+  "id": "0001",
+  "title": "【悲報】きのこの山派、たけのこの里派に論破される",
+  "theme": "きのこの山とたけのこの里、どっちが上か。",
+  "status": "paused",
+  "created": "2026-11-17T16:05:52",
+  "roles": [
+    {
+      "key": "kinoko",
+      "name": "きのこ原理主義者",
+      "type": "main",
+      "side": "きのこ",
+      "persona": "クラッカーの食感と持ちやすさを信じる理屈っぽい中年。数字と構造で殴る。",
+      "engine": "claude",
+      "model": "sonnet",
+      "id": "VXnVNUnP",
+      "out": false
+    },
+    {
+      "key": "takenoko",
+      "name": "たけのこ過激派",
+      "type": "main",
+      "side": "たけのこ",
+      "persona": "クッキー生地とチョコの一体感を信じる若者。勢いと煽りで押す。",
+      "engine": "codex",
+      "model": "",
+      "id": "1Ft7WXQl",
+      "out": false
+    },
+    {
+      "key": "yaji1",
+      "name": "",
+      "type": "gallery",
+      "persona": "面白い方の味方をする野次馬。すぐ草を生やす。",
+      "engine": "codex",
+      "model": "",
+      "id": "I+NKEMTX",
+      "out": false
+    },
+    {
+      "key": "yaji2",
+      "name": "",
+      "type": "gallery",
+      "persona": "冷めた目で論の穴を指摘する野次馬。たまに採決を取りたがる。",
+      "engine": "claude",
+      "model": "haiku",
+      "id": "2QSkNnks",
+      "out": false
+    }
+  ],
+  "prev": null,
+  "next": null
+}
