@@ -2,7 +2,7 @@
   "id": "0003",
   "title": "【社会学者なりきり】「夢を追え、努力は報われる」って言い続ける社会、正しいの？",
   "theme": "社会が「夢を追え」「努力すれば報われる」と言い続けるのは正しいのか。夢を追わせる社会は人を幸せにするのか、それとも誰かに都合がいいだけか。",
-  "status": "running",
+  "status": "settled",
   "created": "2026-11-17T16:47:08",
   "roles": [
     {
@@ -69,7 +69,7 @@
       "engine": "codex",
       "model": "gpt-6.1-sol",
       "id": "PrhrkljI",
-      "out": false
+      "out": true
     },
     {
       "key": "merton",
@@ -118,5 +118,13 @@
   "pressure_from": 45,
   "min_posts_for_verdict": 30,
   "prev": null,
-  "next": null
+  "next": null,
+  "winner": "構造が決めてる派の勝ち",
+  "result": "相手側が全員降参",
+  "winner_roles": [
+    "bourdieu",
+    "marx",
+    "young"
+  ],
+  "settled_at": "2026-11-17T17:56:30"
 }
