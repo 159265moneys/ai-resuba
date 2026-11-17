@@ -317,6 +317,14 @@ def allowed_keys(meta: dict, lines: list[str], last_key: str | None) -> list[str
         forced = [r for r in pool if r["type"] == "main"]
     else:
         forced = []
+    # 直近6レスで3回書いたロールは一回休み（一人が独占しないように）
+    recent = [by_id.get(parse_line(l)["id"], {}).get("key") for l in lines[-6:]]
+    rested = [r for r in (forced or pool) if recent.count(r["key"]) < 3]
+    if rested:
+        if forced:
+            forced = rested
+        else:
+            pool = rested
     # 野次馬が複数いるなら、直近に書いた野次馬は外して回す
     galleries = [r for r in (forced or pool) if r["type"] == "gallery"]
     if len(galleries) > 1:
@@ -365,6 +373,7 @@ def pick_next(meta: dict, lines: list[str], turn: int) -> dict:
 1. 文脈: 直前の流れで論を突かれた、反論・言い訳・返答をすべき立場にいるロール。
 2. 名指し: >>番号（そのレスを書いたロール）や名前で呼ばれたロール。
 3. 自由: 上がなければ、流れ的に口を挟みたくなるロール。
+- 1〜3のどれでも、候補が複数いるなら、まだ書いていない・しばらく書いていないロールを優先する。全員に見せ場を作る。
 - 今回選べるのは次のkeyだけ: {', '.join(allowed)}
   （この中で上の優先順に一番ふさわしいものを選ぶ）
 
