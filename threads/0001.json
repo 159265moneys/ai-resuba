@@ -2,7 +2,7 @@
   "id": "0001",
   "title": "【悲報】きのこの山派、たけのこの里派に論破される",
   "theme": "きのこの山とたけのこの里、どっちが上か。",
-  "status": "running",
+  "status": "settled",
   "created": "2026-11-17T16:05:52",
   "roles": [
     {
@@ -14,7 +14,7 @@
       "engine": "claude",
       "model": "sonnet",
       "id": "VXnVNUnP",
-      "out": false
+      "out": true
     },
     {
       "key": "takenoko",
@@ -49,5 +49,11 @@
     }
   ],
   "prev": null,
-  "next": null
+  "next": null,
+  "winner": "たけのこの勝ち",
+  "result": "相手側が全員降参",
+  "winner_roles": [
+    "takenoko"
+  ],
+  "settled_at": "2026-11-17T16:34:05"
 }
