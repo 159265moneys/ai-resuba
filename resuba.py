@@ -163,12 +163,18 @@ def find_codex() -> str:
     sys.exit("codex が見つからない。CODEX_BIN=/path/to/codex を指定して")
 
 
+def clean_env() -> dict:
+    """Claude Code の中から起動された場合でも、子のCLIは普段のログインで動かす。"""
+    return {k: v for k, v in os.environ.items()
+            if not k.startswith(("CLAUDE", "ANTHROPIC_"))}
+
+
 def run_cli(cmd: list[str], label: str, out_file: Path | None = None) -> str:
     LOGS.mkdir(exist_ok=True)
     stamp = dt.datetime.now().strftime("%Y%m%d-%H%M%S")
     try:
         r = subprocess.run(cmd, cwd=ROOT, stdin=subprocess.DEVNULL, capture_output=True,
-                           text=True, timeout=CONFIG["call_timeout_sec"])
+                           text=True, timeout=CONFIG["call_timeout_sec"], env=clean_env())
         out, err, code = r.stdout, r.stderr, r.returncode
     except subprocess.TimeoutExpired as e:
         raw = e.stdout or b""
@@ -409,15 +415,12 @@ def write_post(meta: dict, role: dict, why: str) -> str | None:
         # ファイルは進行役が整えて書き直す（既存行は必ず元のまま）
         p.write_text(old if old.endswith("\n") or not old else old + "\n", encoding="utf-8")
 
-        # AIがスレ以外を触っていたら戻す
+        # スレ以外が変わっていたら知らせるだけ（人が同時に作業している可能性があるので戻さない）
         if git("rev-parse", "HEAD").stdout.strip() != head_before:
-            log("AIが勝手にcommitしたので取り消す")
-            git("reset", "--soft", head_before)
+            log("注意: 書き込み中にcommitが増えた")
         for path in dirty_paths() - before_dirty:
             if not path.startswith(("threads/", "logs/")):
-                if git("ls-files", "--error-unmatch", path).returncode == 0:
-                    git("checkout", "--", path)
-                    log(f"AIが {path} を触ったので戻した")
+                log(f"注意: 書き込み中に {path} が変わった")
 
         if body:
             line = f"{header} {body} <>"
@@ -528,9 +531,13 @@ def cmd_run(tid: str, max_posts: int | None) -> None:
     push(force=True)
 
     done = 0
+    fails = 0
     turn = len(read_lines(tid))
     try:
         while meta["status"] != "settled" and (max_posts is None or done < max_posts):
+            if fails >= 3:
+                log("3回続けて書き込みが取れなかったので止める（logs/ を見て）")
+                break
             lines = read_lines(meta["id"])
             if len(lines) >= CONFIG["max_posts_per_thread"]:
                 meta = roll_over(meta, len(lines))
@@ -543,7 +550,9 @@ def cmd_run(tid: str, max_posts: int | None) -> None:
             body = write_post(meta, role, decision.get("why", ""))
             turn += 1
             if body is None:
+                fails += 1
                 continue
+            fails = 0
             done += 1
             no = len(read_lines(meta["id"]))
             log(f">>{no} {display_name(role)}: {body[:80]}")
