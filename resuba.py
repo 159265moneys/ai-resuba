@@ -317,9 +317,10 @@ def allowed_keys(meta: dict, lines: list[str], last_key: str | None) -> list[str
         forced = [r for r in pool if r["type"] == "main"]
     else:
         forced = []
-    # 直近6レスで3回書いたロールは一回休み（一人が独占しないように）
+    # 直近6レスで書きすぎたロールは一回休み（一人が独占しないように）。人数が多いスレほど厳しく
     recent = [by_id.get(parse_line(l)["id"], {}).get("key") for l in lines[-6:]]
-    rested = [r for r in (forced or pool) if recent.count(r["key"]) < 3]
+    cap = 2 if len(eligible(meta)) >= 6 else 3
+    rested = [r for r in (forced or pool) if recent.count(r["key"]) < cap]
     if rested:
         if forced:
             forced = rested
@@ -348,6 +349,11 @@ def pressure(meta: dict, role: dict, count: int) -> str:
     start = meta.get("pressure_from", 30)
     if count < start:
         return ""
+    back = f"テーマは「{meta['theme']}」。細部の言い合いに流れていたら、このテーマに引き戻して決着をつけにいけ。"
+    return back + "\n" + _pressure_core(role, count, start)
+
+
+def _pressure_core(role: dict, count: int, start: int) -> str:
     if role["type"] == "gallery":
         if count < start * 2:
             return f"スレはもう{count}レス。長引いてる。どっちが押してるか言い切り、【判定】を出すか【採決】を取れ。"
