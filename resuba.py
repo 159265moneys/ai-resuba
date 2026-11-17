@@ -297,7 +297,28 @@ def allowed_keys(meta: dict, lines: list[str], last_key: str | None) -> list[str
         forced = [r for r in pool if r["type"] == "main"]
     else:
         forced = []
+    # 野次馬が複数いるなら、直近に書いた野次馬は外して回す
+    galleries = [r for r in (forced or pool) if r["type"] == "gallery"]
+    if len(galleries) > 1:
+        last_gallery = next((by_id[parse_line(l)["id"]]["key"] for l in reversed(lines)
+                             if by_id.get(parse_line(l)["id"], {}).get("type") == "gallery"), None)
+        drop = {last_gallery}
+        cands = [r for r in (forced or pool) if r["key"] not in drop]
+        return [r["key"] for r in cands]
     return [r["key"] for r in (forced or pool)]
+
+
+def pressure(role: dict, count: int) -> str:
+    """長引いたら決着に向けて圧をかける。実際のレスバで飽きた野次馬が煽り出すのと同じ。"""
+    if count < 30:
+        return ""
+    if role["type"] == "gallery":
+        if count < 60:
+            return f"スレはもう{count}レス。長引いてる。どっちが押してるか言い切り、【判定】を出すか【採決】を取れ。"
+        return f"スレはもう{count}レスで、見てる側は完全に飽きてる。【判定】か【採決】で今すぐ終わらせにいけ。"
+    if count < 60:
+        return f"スレはもう{count}レス。同じ主張の言い直しは負け扱いされる。新しい論がないなら【降参】しろ。"
+    return f"スレはもう{count}レス。新しい決め手が出せないなら、ここで【降参】するのが筋。"
 
 
 def pick_next(meta: dict, lines: list[str], turn: int) -> dict:
@@ -329,6 +350,7 @@ def pick_next(meta: dict, lines: list[str], turn: int) -> dict:
 # 決着の判定
 - メインの片側が全員【降参】していたら決着。
 - 降参がなくても、【判定】や【採決】で勝ち負けがはっきりし、負けた側がその後それを覆せていなければ決着。
+- 票は野次馬の票だけ数える。メインが自分で入れた票は数えない。
 - それ以外は決着していない。迷ったら決着していない。引き分けはない。
 - 立場は次のどれか: {', '.join(sides)}
 
@@ -385,6 +407,7 @@ def speaker_prompt(meta: dict, role: dict, header: str, why: str) -> str:
 ファイル: {rel}
 （1行が1レスで、行番号がレス番号。形式は「名前<>メール欄<>日付 ID<>本文<>」。本文の改行は<br>）
 今あなたの番になった理由: {why}
+{pressure(role, len(read_lines(meta['id'])))}
 
 # 板のルール
 {RULES}
@@ -431,7 +454,11 @@ def write_post(meta: dict, role: dict, why: str) -> str | None:
         prompt = speaker_prompt(meta, role, header, why)
         effort = CONFIG["codex_effort"]["main" if role["type"] == "main" else "gallery"]
         cmd = engine_cmd(role["engine"], role.get("model", ""), prompt, write=True, effort=effort)
-        run_cli(cmd, f"{tid}-{role['key']}")
+        try:
+            run_cli(cmd, f"{tid}-{role['key']}")
+        except KeyboardInterrupt:
+            p.write_text(old, encoding="utf-8")  # 書きかけを残さない
+            raise
 
         new = p.read_text(encoding="utf-8")
         body = extract_body(old, new, header)
