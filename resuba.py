@@ -279,11 +279,33 @@ def fallback_next(meta: dict, lines: list[str], last_key: str | None) -> tuple[s
     return pool[0], "流れで"
 
 
+def allowed_keys(meta: dict, lines: list[str], last_key: str | None) -> list[str]:
+    """メインの応酬が3回続いたら野次馬、野次馬が2回続いたらメインに強制する。"""
+    by_id = {r["id"]: r for r in meta["roles"]}
+    kinds = []
+    for l in reversed(lines[1:]):
+        r = by_id.get(parse_line(l)["id"])
+        if not r:
+            break
+        kinds.append(r["type"])
+    streak_type = kinds[0] if kinds else None
+    streak = next((i for i, k in enumerate(kinds) if k != streak_type), len(kinds))
+    pool = [r for r in eligible(meta) if r["key"] != last_key] or eligible(meta)
+    if streak_type == "main" and streak >= 3:
+        forced = [r for r in pool if r["type"] == "gallery"]
+    elif streak_type == "gallery" and streak >= 2:
+        forced = [r for r in pool if r["type"] == "main"]
+    else:
+        forced = []
+    return [r["key"] for r in (forced or pool)]
+
+
 def pick_next(meta: dict, lines: list[str], turn: int) -> dict:
     by_id = {r["id"]: r for r in meta["roles"]}
     last_role = by_id.get(parse_line(lines[-1])["id"]) if lines else None
     last_key = last_role["key"] if last_role else None
     sides = sorted({r["side"] for r in meta["roles"] if r["type"] == "main"})
+    allowed = allowed_keys(meta, lines, last_key)
 
     prompt = f"""あなたは匿名掲示板のレスバを回す進行役。自分では書き込まない。次に誰が書くかと、決着がついたかだけを判定する。
 
@@ -300,9 +322,9 @@ def pick_next(meta: dict, lines: list[str], turn: int) -> dict:
 # 次に書くロールの決め方（上ほど優先）
 1. 文脈: 直前の流れで論を突かれた、反論・言い訳・返答をすべき立場にいるロール。
 2. 名指し: >>番号（そのレスを書いたロール）や名前で呼ばれたロール。
-3. 自由: 上がなければ、流れ的に口を挟みたくなるロール。メインの往復が3回以上続いたら野次馬を、野次馬が2回続いたらメインを選ぶ。
-- 直前に書いたロール（key={last_key}）は選ばない。
-- 降参済みのロールは選ばない。
+3. 自由: 上がなければ、流れ的に口を挟みたくなるロール。
+- 今回選べるのは次のkeyだけ: {', '.join(allowed)}
+  （この中で上の優先順に一番ふさわしいものを選ぶ）
 
 # 決着の判定
 - メインの片側が全員【降参】していたら決着。
@@ -325,9 +347,10 @@ def pick_next(meta: dict, lines: list[str], turn: int) -> dict:
             decision = json.loads(m.group(0))
         except json.JSONDecodeError:
             decision = {}
-    keys = {r["key"] for r in eligible(meta)}
-    if decision.get("next") not in keys or decision.get("next") == last_key:
+    if decision.get("next") not in allowed:
         k, why = fallback_next(meta, lines, last_key)
+        if k not in allowed:
+            k, why = allowed[0], "流れで"
         decision.update(next=k, why=why)
         log(f"進行役({spec})の判定が使えないので予備ルールで選択")
     decision["moderator"] = spec
