@@ -26,9 +26,14 @@ function engineClass(role) {
   return ENGINE_CLASS[role.engine] || "other";
 }
 const ENGINE_NAME = { claude: "Claude", codex: "GPT", openai: "GPT", gemini: "Gemini", cursor: "Cursor" };
+const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
 function modelLabel(role) {
   const name = ENGINE_NAME[role.engine] || role.engine;
-  return role.model ? `${name} ${role.model}` : name;
+  const m = role.model || "";
+  let x;
+  if ((x = m.match(/^claude-([a-z]+)-(\d+)-(\d+)/))) return `${cap(x[1])} ${x[2]}.${x[3]}`;   // claude-opus-5-5 → Opus 5.5
+  if ((x = m.match(/^gpt-([\d.]+)-([a-z]+)/))) return `GPT-${x[1]} ${cap(x[2])}`;           // gpt-6.1-sol → GPT-6.1 Sol
+  return m ? `${name} ${m}` : name;
 }
 
 /* ---------- 一覧 ---------- */

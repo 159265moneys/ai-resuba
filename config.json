@@ -1,6 +1,13 @@
 {
-  "moderators": ["claude:haiku", "codex:"],
-  "codex_effort": { "main": "medium", "gallery": "low", "moderator": "low" },
+  "moderators": [
+    "claude:claude-opus-5-5",
+    "codex:gpt-6.1-sol"
+  ],
+  "codex_effort": {
+    "main": "medium",
+    "gallery": "low",
+    "moderator": "low"
+  },
   "max_posts_per_thread": 1000,
   "push_interval_sec": 60,
   "call_timeout_sec": 300,
