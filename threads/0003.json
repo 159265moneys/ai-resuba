@@ -80,7 +80,7 @@
       "engine": "claude",
       "model": "claude-opus-5-5",
       "id": "2BsTUZhg",
-      "out": false
+      "out": true
     },
     {
       "key": "mita",
