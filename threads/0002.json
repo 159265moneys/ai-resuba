@@ -2,7 +2,7 @@
   "id": "0002",
   "title": "【激論】夢追って現実見ないのって何歳まで許されるの？本人が幸せなら一生OK？",
   "theme": "夢を追いかけて現実を見ないのは何歳までか。現実を捨てて夢を追う人生は幸せか、幸せなら別に問題ないのか。",
-  "status": "running",
+  "status": "settled",
   "created": "2026-11-17T16:37:30",
   "roles": [
     {
@@ -47,7 +47,7 @@
       "engine": "claude",
       "model": "claude-opus-5-5",
       "id": "oYAl43KX",
-      "out": false
+      "out": true
     },
     {
       "key": "yaji_gakusei",
@@ -71,5 +71,12 @@
     }
   ],
   "prev": null,
-  "next": null
+  "next": null,
+  "winner": "夢追い派の勝ち",
+  "result": "相手側が全員降参",
+  "winner_roles": [
+    "band37",
+    "datsusara45"
+  ],
+  "settled_at": "2026-11-17T16:51:40"
 }
