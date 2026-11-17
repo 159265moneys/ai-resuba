@@ -325,6 +325,13 @@ def allowed_keys(meta: dict, lines: list[str], last_key: str | None) -> list[str
             forced = rested
         else:
             pool = rested
+    # しばらく（ロール数×2レス）書いていないメインがいたら、そのメインに回す
+    if not (forced and forced[0]["type"] == "gallery"):
+        window = lines[1:][-2 * len(eligible(meta)):]
+        seen = {by_id.get(parse_line(l)["id"], {}).get("key") for l in window}
+        starved = [r for r in (forced or pool) if r["type"] == "main" and r["key"] not in seen]
+        if starved and len(lines) > len(eligible(meta)):
+            return [r["key"] for r in starved]
     # 野次馬が複数いるなら、直近に書いた野次馬は外して回す
     galleries = [r for r in (forced or pool) if r["type"] == "gallery"]
     if len(galleries) > 1:
