@@ -13,6 +13,7 @@ from __future__ import annotations
 import argparse
 import base64
 import datetime as dt
+import fcntl
 import glob
 import hashlib
 import json
@@ -23,6 +24,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from contextlib import contextmanager
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
@@ -101,7 +103,23 @@ def next_thread_id() -> str:
     return f"{(max(nums) + 1) if nums else 1:04d}"
 
 
+@contextmanager
+def repo_lock():
+    """複数のスレを同時に回しても、一覧の更新とgit操作がぶつからないようにする。"""
+    with open(ROOT / ".git" / "resuba.lock", "w") as f:
+        fcntl.flock(f, fcntl.LOCK_EX)
+        try:
+            yield
+        finally:
+            fcntl.flock(f, fcntl.LOCK_UN)
+
+
 def update_index(meta: dict, count: int) -> None:
+    with repo_lock():
+        _update_index(meta, count)
+
+
+def _update_index(meta: dict, count: int) -> None:
     idx = read_json(INDEX, {"threads": []})
     rows = [t for t in idx["threads"] if t["id"] != meta["id"]]
     rows.append({
@@ -124,8 +142,9 @@ def git(*args: str, check: bool = False) -> subprocess.CompletedProcess:
 
 def commit(tid: str, msg: str) -> None:
     paths = [str(dat_path(tid).relative_to(ROOT)), str(meta_path(tid).relative_to(ROOT)), str(INDEX.relative_to(ROOT))]
-    git("add", *paths)
-    r = git("commit", "-q", "-m", msg, "--", *paths)
+    with repo_lock():
+        git("add", *paths)
+        r = git("commit", "-q", "-m", msg, "--", *paths)
     if r.returncode != 0 and "nothing to commit" not in (r.stdout + r.stderr):
         log(f"commit失敗: {r.stderr.strip()}")
 
@@ -137,7 +156,8 @@ def push(force: bool = False) -> None:
     global _last_push
     if not force and time.time() - _last_push < CONFIG["push_interval_sec"]:
         return
-    r = git("push", "-q")
+    with repo_lock():
+        r = git("push", "-q")
     _last_push = time.time()
     if r.returncode != 0:
         log(f"push失敗: {r.stderr.strip()}")
@@ -308,15 +328,16 @@ def allowed_keys(meta: dict, lines: list[str], last_key: str | None) -> list[str
     return [r["key"] for r in (forced or pool)]
 
 
-def pressure(role: dict, count: int) -> str:
+def pressure(meta: dict, role: dict, count: int) -> str:
     """長引いたら決着に向けて圧をかける。実際のレスバで飽きた野次馬が煽り出すのと同じ。"""
-    if count < 30:
+    start = meta.get("pressure_from", 30)
+    if count < start:
         return ""
     if role["type"] == "gallery":
-        if count < 60:
+        if count < start * 2:
             return f"スレはもう{count}レス。長引いてる。どっちが押してるか言い切り、【判定】を出すか【採決】を取れ。"
         return f"スレはもう{count}レスで、見てる側は完全に飽きてる。【判定】か【採決】で今すぐ終わらせにいけ。"
-    if count < 60:
+    if count < start * 2:
         return f"スレはもう{count}レス。同じ主張の言い直しは負け扱いされる。新しい論がないなら【降参】しろ。"
     return f"スレはもう{count}レス。新しい決め手が出せないなら、ここで【降参】するのが筋。"
 
@@ -409,11 +430,11 @@ def speaker_prompt(meta: dict, role: dict, header: str, why: str) -> str:
 ファイル: {rel}
 （1行が1レスで、行番号がレス番号。形式は「名前<>メール欄<>日付 ID<>本文<>」。本文の改行は<br>）
 今あなたの番になった理由: {why}
-{pressure(role, len(read_lines(meta['id'])))}
+{pressure(meta, role, len(read_lines(meta['id'])))}
 
 # 板のルール
 {RULES}
-
+{('# このスレだけの追加ルール' + chr(10) + meta['notes'] + chr(10)) if meta.get('notes') else ''}
 # やること
 1. {rel} を全部読んで流れをつかむ。
 2. あなたのロールとして次のレスを考え、{rel} の末尾に次の形式の1行だけを追記する。
@@ -451,7 +472,6 @@ def write_post(meta: dict, role: dict, why: str) -> str | None:
     for attempt in range(CONFIG["retries"] + 1):
         old = p.read_text(encoding="utf-8")
         before_dirty = dirty_paths()
-        head_before = git("rev-parse", "HEAD").stdout.strip()
         header = header_for(role, tid)
         prompt = speaker_prompt(meta, role, header, why)
         effort = CONFIG["codex_effort"]["main" if role["type"] == "main" else "gallery"]
@@ -468,8 +488,6 @@ def write_post(meta: dict, role: dict, why: str) -> str | None:
         p.write_text(old if old.endswith("\n") or not old else old + "\n", encoding="utf-8")
 
         # スレ以外が変わっていたら知らせるだけ（人が同時に作業している可能性があるので戻さない）
-        if git("rev-parse", "HEAD").stdout.strip() != head_before:
-            log("注意: 書き込み中にcommitが増えた")
         for path in dirty_paths() - before_dirty:
             if not path.startswith(("threads/", "logs/")):
                 log(f"注意: 書き込み中に {path} が変わった")
@@ -497,7 +515,7 @@ def check_settlement(meta: dict, decision: dict, lines: list[str]) -> None:
     if not (decision.get("settled") and win in all_sides):
         meta.pop("pending_verdict", None)
         return
-    if len(lines) < CONFIG.get("min_posts_for_verdict", 20):
+    if len(lines) < meta.get("min_posts_for_verdict", CONFIG.get("min_posts_for_verdict", 20)):
         meta.pop("pending_verdict", None)
         return
     marks = [i for i, l in enumerate(lines) if any(m in l for m in VERDICT_MARKS)]
@@ -550,6 +568,7 @@ def cmd_new(topic_path: str, prev: str | None = None) -> str:
         "status": "paused",
         "created": dt.datetime.now().isoformat(timespec="seconds"),
         "roles": roles,
+        **{k: topic[k] for k in ("notes", "pressure_from", "min_posts_for_verdict") if k in topic},
         "prev": prev,
         "next": None,
     }
@@ -574,6 +593,7 @@ def roll_over(meta: dict, count: int) -> dict:
         "theme": meta["theme"],
         "opening": f"前スレ ?t={meta['id']}<br>続き。{meta['theme']}",
         "roles": [{k: v for k, v in r.items() if k not in ("id",)} for r in meta["roles"]],
+        **{k: meta[k] for k in ("notes", "pressure_from", "min_posts_for_verdict") if k in meta},
     }
     tmp = ROOT / "logs" / "_next_topic.json"
     LOGS.mkdir(exist_ok=True)
