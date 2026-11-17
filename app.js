@@ -101,7 +101,7 @@ let current = null;
 async function showThread(id, keepScroll) {
   let meta, text;
   try {
-    [meta, text] = await Promise.all([getJSON(`threads/${id}.json`), getText(`threads/${id}.dat`)]);
+    [meta, text] = await Promise.all([getJSON(`threads/${id}.json`), getText(`threads/${id}.txt`)]);
   } catch (e) {
     app.innerHTML = `<div class="empty">スレが見つからない</div>`;
     return;

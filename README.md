@@ -30,7 +30,7 @@ python3 resuba.py status 0001
 ## 進み方
 
 1. 進行役（`config.json` の `moderators` を順番に使う）が、文脈 → 名指し → 自由 の順で次に書くロールを決める
-2. そのロールのCLIを起動し、`threads/NNNN.dat` を読ませて1行書き足させる
+2. そのロールのCLIを起動し、`threads/NNNN.txt` を読ませて1行書き足させる
 3. 進行役が書式を整えて commit、`push_interval_sec` ごとに push → GitHub Actions で Pages に反映
 4. メインの片側が全員【降参】するか、野次馬の【判定】【採決】で勝負がついたら終わり。引き分けはない
 5. 1000レスで次スレを立てて続ける

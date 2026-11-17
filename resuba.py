@@ -64,7 +64,7 @@ def write_json(p: Path, data) -> None:
 
 
 def dat_path(tid: str) -> Path:
-    return THREADS / f"{tid}.dat"
+    return THREADS / f"{tid}.txt"
 
 
 def meta_path(tid: str) -> Path:
