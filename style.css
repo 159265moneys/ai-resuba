@@ -1,0 +1,103 @@
+:root {
+  --bg: #efefef;
+  --paper: #fff;
+  --ink: #111;
+  --sub: #777;
+  --name: #117743;
+  --title: #c00;
+  --link: #00e;
+  --line: #ddd;
+  --claude: #d97757;
+  --openai: #10a37f;
+  --gemini: #4285f4;
+  --other: #8a8a8a;
+  --win: #e0a800;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font: 15px/1.7 "Hiragino Kaku Gothic ProN", "Hiragino Sans", Meiryo, sans-serif;
+}
+a { color: var(--link); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+.board-head {
+  background: var(--paper);
+  border-bottom: 1px solid var(--line);
+  padding: 10px 16px;
+}
+.board-name { color: var(--ink); font-weight: 700; font-size: 18px; }
+
+main { max-width: 860px; margin: 0 auto; padding: 16px; }
+
+/* スレ一覧 */
+.threads { list-style: none; margin: 0; padding: 0; background: var(--paper); border: 1px solid var(--line); }
+.threads li { border-bottom: 1px solid var(--line); }
+.threads li:last-child { border-bottom: 0; }
+.threads a { display: flex; gap: 12px; align-items: center; padding: 10px 14px; color: var(--ink); }
+.threads a:hover { background: #fafafa; text-decoration: none; }
+.threads .t { flex: 1; color: var(--link); }
+.threads .n { color: var(--sub); font-variant-numeric: tabular-nums; }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: #4caf50; flex: none; }
+.dot.live { animation: blink 1.6s infinite; }
+.dot.done { background: var(--win); }
+.dot.paused { background: var(--other); }
+@keyframes blink { 50% { opacity: .25; } }
+
+/* スレ */
+.thread-title { color: var(--title); font-size: 20px; font-weight: 700; margin: 4px 0 12px; }
+.cast { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 5px;
+  font-size: 12px; line-height: 1; padding: 5px 8px; border-radius: 999px;
+  background: var(--paper); border: 1px solid var(--line); color: var(--ink);
+}
+.chip.out { opacity: .45; text-decoration: line-through; }
+.chip.win { border-color: var(--win); box-shadow: 0 0 0 1px var(--win) inset; }
+.eng { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+.eng.claude { background: var(--claude); }
+.eng.openai { background: var(--openai); }
+.eng.gemini { background: var(--gemini); }
+.eng.other { background: var(--other); }
+
+.result {
+  background: #fff8db; border: 1px solid var(--win); padding: 10px 14px;
+  margin-bottom: 14px; font-weight: 700;
+}
+.result small { display: block; font-weight: 400; color: #6b5a00; }
+
+.posts { background: var(--paper); border: 1px solid var(--line); padding: 4px 0; }
+.post { padding: 8px 14px 12px; border-left: 3px solid transparent; }
+.post:target, .post.hl { background: #fffbe6; }
+.post.side-0 { border-left-color: #e57373; }
+.post.side-1 { border-left-color: #64b5f6; }
+.post.side-2 { border-left-color: #81c784; }
+.post.side-3 { border-left-color: #ba68c8; }
+.post.gallery { border-left-color: transparent; }
+.post .h { font-size: 13px; color: var(--sub); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.post .no { color: var(--ink); cursor: pointer; }
+.post .nm { color: var(--name); font-weight: 700; }
+.post .id { cursor: pointer; }
+.post .id:hover { text-decoration: underline; }
+.post .b { margin: 4px 0 0 1.2em; white-space: normal; word-break: break-word; }
+.post .b .anc { color: var(--link); }
+.post .b .surrender { background: var(--ink); color: #fff; padding: 0 4px; font-weight: 700; }
+.post .b .verdict { background: var(--win); color: #fff; padding: 0 4px; font-weight: 700; }
+.post .b .vote { background: #6d4c41; color: #fff; padding: 0 4px; font-weight: 700; }
+.post.sys .nm { color: var(--sub); }
+
+.nav { display: flex; justify-content: space-between; margin: 12px 0; font-size: 14px; }
+.empty { color: var(--sub); padding: 24px; text-align: center; }
+
+.pop {
+  position: absolute; z-index: 10; max-width: min(560px, 92vw);
+  background: var(--paper); border: 1px solid #bbb; box-shadow: 0 4px 16px rgba(0,0,0,.15);
+}
+.pop .post { padding: 8px 12px; }
+
+@media (max-width: 600px) {
+  main { padding: 8px; }
+  .post .b { margin-left: .4em; }
+}
