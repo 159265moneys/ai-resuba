@@ -12,5 +12,6 @@
   "push_interval_sec": 60,
   "call_timeout_sec": 300,
   "retries": 2,
-  "context_posts_for_moderator": 60
+  "context_posts_for_moderator": 60,
+  "min_posts_for_verdict": 20
 }

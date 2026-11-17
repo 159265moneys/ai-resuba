@@ -351,6 +351,8 @@ def pick_next(meta: dict, lines: list[str], turn: int) -> dict:
 - メインの片側が全員【降参】していたら決着。
 - 降参がなくても、【判定】や【採決】で勝ち負けがはっきりし、負けた側がその後それを覆せていなければ決着。
 - 票は野次馬の票だけ数える。メインが自分で入れた票は数えない。
+- 野次馬の一票や【判定】1つだけでは決着しない。負け側に残っているメインがそれに言い返せず、言い直しか逃げしか出せなくなった時に決着。
+- 片側のメインが一部だけ降参しても、同じ側にまだ戦っているメインがいれば決着していない。
 - それ以外は決着していない。迷ったら決着していない。引き分けはない。
 - 立場は次のどれか: {', '.join(sides)}
 
@@ -490,10 +492,33 @@ def check_settlement(meta: dict, decision: dict, lines: list[str]) -> None:
         win = next(iter(sides_alive))
         settle(meta, win, "相手側が全員降参")
         return
-    if decision.get("settled") and decision.get("winner_side") in all_sides:
-        text = "\n".join(lines)
-        if any(m in text for m in VERDICT_MARKS + (SURRENDER,)):
-            settle(meta, decision["winner_side"], decision.get("result") or "スレの判定")
+    # 降参以外での決着は慎重に。進行役1回の判断や野次馬の一票では決めない。
+    win = decision.get("winner_side")
+    if not (decision.get("settled") and win in all_sides):
+        meta.pop("pending_verdict", None)
+        return
+    if len(lines) < CONFIG.get("min_posts_for_verdict", 20):
+        meta.pop("pending_verdict", None)
+        return
+    marks = [i for i, l in enumerate(lines) if any(m in l for m in VERDICT_MARKS)]
+    if not marks:
+        meta.pop("pending_verdict", None)
+        return
+    # 最後の【判定】【採決】のあと、負け側の残っているメインが全員1回は言い返す機会を得ていること
+    by_id = {r["id"]: r for r in meta["roles"]}
+    after = {by_id.get(parse_line(l)["id"], {}).get("key") for l in lines[marks[-1] + 1:]}
+    losers = [r for r in meta["roles"] if r["type"] == "main" and r["side"] != win and not r.get("out")]
+    if any(r["key"] not in after for r in losers):
+        meta.pop("pending_verdict", None)
+        return
+    # 別々の進行役（別モデル）が続けて同じ判定を出したら決着
+    pend = meta.get("pending_verdict")
+    if pend and pend["side"] == win and pend["moderator"] != decision.get("moderator"):
+        meta.pop("pending_verdict", None)
+        settle(meta, win, decision.get("result") or "スレの判定")
+    else:
+        meta["pending_verdict"] = {"side": win, "moderator": decision.get("moderator"), "at": len(lines)}
+        log(f"決着の判定候補: {win}（{decision.get('moderator')}）。次の進行役も同じなら決着")
 
 
 def settle(meta: dict, side: str, result: str) -> None:
