@@ -122,8 +122,8 @@ async function showThread(id, keepScroll) {
     const c = ["chip"];
     if (r.out) c.push("out");
     if (winners.has(r.key)) c.push("win");
-    const side = r.type === "main" ? `［${esc(r.side)}］` : "";
-    return `<span class="${c.join(" ")}"><span class="eng ${engineClass(r)}"></span>${side}${esc(r.name)}<span style="color:var(--sub)">ID:${esc(r.id)}</span></span>`;
+    const side = r.type === "main" ? `［${esc(r.side)}］` : "［野次馬］";
+    return `<span class="${c.join(" ")}"><span class="eng ${engineClass(r)}"></span>${side}${esc(r.name || "名無しさん")}<span style="color:var(--sub)">ID:${esc(r.id)}</span></span>`;
   }).join("");
 
   const result = meta.status === "settled"
